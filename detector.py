@@ -301,8 +301,8 @@ def run(args):
 
     # if bgmodel is needed, check first if the file already exists
     if args.bgn > 0:
-        bgmodel_file = "_".join([
-            os.path.splitext(args.input_file)[0],
+        bgmodel_file = os.path.splitext(args.input_file)[0] + ".0."
+        bgmodel_file += "_".join([
             f"bgn_{args.bgn}",
             f"bgmethod_{args.bgmethod}"
         ]) + ".npy"
@@ -361,10 +361,8 @@ def run(args):
             f"bgn_{args.bgn}",
             f"bgmethod_{args.bgmethod}"
         ]
-        output_file = "_".join([
-            os.path.splitext(args.input_file)[0],
-            *[a for a in args_ if len(a) > 0]
-        ]) + ".detections"
+        output_file = os.path.splitext(args.input_file)[0] + ".1."
+        output_file += "_".join([a for a in args_ if len(a) > 0]) + ".json"
     else:
         output_file = args.output_file
 
@@ -446,7 +444,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--bgmethod",
-        help="background substraction mode",
+        help="background model estimation method",
         type=str,
         choices=("mean", "median"),
         default="mean"
@@ -454,13 +452,13 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--view",
-        help="plot detection results",
+        help="view detection results",
         action="store_true"
     )
 
     parser.add_argument(
         "--output-file",
-        help="output file",
+        help="output file.",
         type=str
     )
 

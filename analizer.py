@@ -318,10 +318,8 @@ def run(args):
             f"k-subsample-factor_{args.k_subsample_factor}",
             #f"mpp_{args.mpp}"
         ]
-        output_file = "_".join([
-            os.path.splitext(video_file)[0],
-            *[a for a in args_ if len(a) > 0]
-        ]) + ".tracks.info"
+        output_file = os.path.splitext(video_file)[0] + ".3."
+        output_file += "_".join([a for a in args_ if len(a) > 0]) + ".json"
     else:
         output_file = args.output_file
 
@@ -420,7 +418,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--output-file",
-        help="output file. If not set, use the same name as input detections",
+        help="output file.",
         type=str
     )
 

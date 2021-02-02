@@ -582,10 +582,8 @@ def run(args):
             f"max-kalman-guesses_{args.max_kalman_guesses}" if args.kalman else "",
             f"n-frames_{args.n_frames}" if args.n_frames else "",
         ]
-        output_file = "_".join([
-            os.path.splitext(video_file)[0],
-            *[a for a in args_ if len(a) > 0]
-        ]) + ".tracks"
+        output_file = os.path.splitext(video_file)[0] + ".2."
+        output_file += "_".join([a for a in args_ if len(a) > 0]) + ".json"
     else:
         output_file = args.output_file
 
@@ -657,7 +655,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--output-file",
-        help="output file. If not set, use the same name as input detections",
+        help="output file.",
         type=str
     )
 
