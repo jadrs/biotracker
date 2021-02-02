@@ -75,7 +75,7 @@ optional arguments:
   --n-frames N_FRAMES   process first n frames only (default: None)
   --view                plot tracking results. It only shows tracks with at least 10 points (default: False)
   --output-file OUTPUT_FILE
-                        output file. If not set, use the same name as input detections (default: None)
+                        output file (default: None)
 ```
 
 ## Analyzer
@@ -110,5 +110,5 @@ optional arguments:
   --view                view tracks (default: False)
   --save                save tracks to './output' (default: False)
   --output-file OUTPUT_FILE
-                        output file. If not set, use the same name as input detections (default: None)
+                        output file (default: None)
 ```
