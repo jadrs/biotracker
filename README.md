@@ -19,96 +19,115 @@ $ python3 setup.py build
 ## Detector
 
 ```sh
-$ python3 detector.py -h
-
-usage: detector.py [-h] [--operator {dog,log}] [--prescale PRESCALE] [--invert] [--sigma SIGMA] [--thr THR] [--subpix] [--nlmeans] [--bgn BGN] [--bgmethod {mean,median}]
-                   [--view] [--output-file OUTPUT_FILE]
+usage: detector.py [-h] [--operator {dog,log}] [--prescale PRESCALE] [--invert] [--sigma SIGMA] [--thr THR] [--subpix] [--nlmeans] [--bgm-method {none,mean,median}]
+                   [--bgm-n-frames BGM_N_FRAMES] [--view] [--output-file OUTPUT_FILE]
                    input_file
-
-Detects particles in an input video
-
-positional arguments:
-  input_file            input video file
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --operator {dog,log}  detection operator (default: log)
-  --prescale PRESCALE   pre-scaling factor (default: 1.0)
-  --invert              run detector on negative images (default: False)
-  --sigma SIGMA         LoG integration scale (default: 1.5)
-  --thr THR             detection threshold (default: 1.0)
-  --subpix              compute subpixel coordinates (default: False)
-  --nlmeans             apply non-local means denoising (default: False)
-  --bgn BGN             use n frames to compute the backround model. Set to zero disables it (default: 100)
-  --bgmethod {mean,median}
-                        background substraction mode (default: mean)
-  --view                plot detection results (default: False)
-  --output-file OUTPUT_FILE
-                        output file (default: None)
-
 ```
+
+### Parameters
+
+* **-h, --help**
+
+Shows a help message
+
+* **--prescale** (default: 1.0)
+
+Scaling factor applied to each video frame. If set to a value lower than 1.0 it will speed up the processing since the images will be smaller in size.
+
+* **--invert**
+
+If set, invert the intensity range
+
+* **--nlmeans**
+
+If set, run [non-local means](https://en.wikipedia.org/wiki/Non-local_means) denoising to the image frame
+
+* **--operator** {log, dog} (default: log)
+
+Blob detection operator: [Laplacian-of-Gaussian](https://en.wikipedia.org/wiki/Blob_detection#The_Laplacian_of_Gaussian) (*log*) or [Difference-of-Gaussians](https://en.wikipedia.org/wiki/Difference_of_Gaussians) (*dog*). Particle location are computed as local maxima in a 3x3 neighbour from the operator response.
+
+* **--sigma** (default: 1.5)
+
+Scale parameter for the DoG/LoG operator. For a uniform disk of radius R pixels on a uniform background, this should be set to approximately 1.41R.
+
+* **--thr** (default: 1.0)
+
+Detection threshold. Only local maxima whose response is above this value will be considered as true detections.
+
+* **--subpix**
+
+If set, refine detections at subpixel resolution. This is done by fitting a paraboloid on the 3x3 path aroung a detection and by taking the location of its maxima as the refined particle position.
+
+* **--bgm-method** {none, mean, median} (default: mean)
+
+Background model (BGM) estimation method
+
+* **--bgm-n-frames** (default: 100)
+
+Compute the BGM using this number of frames. Frames are sampled at random from the input video.
+
+* **--view**
+
+If set, view detections frame-by-frame
+
+* **--output-file**
+
+Output detections file. If not set, the file name will be set to the same as the input video augmented with the parameters used in the experiment.
+
+### Example output
+
+Running:
+
+```sh
+$ python3 detector.py VIDEO.avi
+```
+
+generates two files:
+
+1. *VIDEO.0.bgm-n-frames_100_bgm-method_mean.npy*: stores a numpy array with the BGM
+
+1. *VIDEO.1.operator_log_prescale_1.0_sigma_2.0_thr_1.0_subpix_bgm-n-frames_100_bgm-method_mean.json*: stores detection results and some additional information. Detections are stored as a list of lists. Each element of the detections list is a list of 2D coordinates (in pixels) for the detections at each frame. Example output:
+
+```json
+{
+	"video_file": "VIDEO.avi",
+	"input_file": "VIDEO.avi",
+	"timestamp": "Wed Feb  3 10:16:43 2021",
+	"params": {"input_file": "VIDEO.avi", "operator": "log", "prescale": 1.0, "invert": false, "sigma": 2.0, "thr": 1.0, "subpix": true, "nlmeans": false, "bgm_n_frames": 100, "bgm_method": "mean", "view": true, "output_file": null},
+	"bgm_file": "VIDEO.0.bgm-n-frames_100_bgm-method_mean.npy"
+	"detections": [[[224.3381, 5.3833], ... [379.8086, 29.4609]], ..., [[82.8913, 31.9120], ..., [949.6086, 31.9928]]
+}
+```
+
 
 ## Linker
 
 ```sh
-$ python3 linker.py -h
-
 usage: linker.py [-h] [--max-t-gap MAX_T_GAP] [--dist-thr DIST_THR] [--dist-ratio-thr DIST_RATIO_THR] [--kalman] [--max-kalman-guesses MAX_KALMAN_GUESSES]
                  [--n-frames N_FRAMES] [--view] [--output-file OUTPUT_FILE]
                  input_file
-
-Link detections (build tracks) predicted by the detection module
-
-positional arguments:
-  input_file            detections file
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --max-t-gap MAX_T_GAP
-                        maximum number of time steps between consecutive detections in a track (default: 3)
-  --dist-thr DIST_THR   first stage distance threshold, in pixels (default: 5.0)
-  --dist-ratio-thr DIST_RATIO_THR
-                        first stage distance ratio threshold, a scalar between 0 and 1 (default: 0.8)
-  --kalman              use Kalman filters during the first matching stage (default: False)
-  --max-kalman-guesses MAX_KALMAN_GUESSES
-                        maximum number consecutive Kalman guesses allowed in a track (default: 2)
-  --n-frames N_FRAMES   process first n frames only (default: None)
-  --view                plot tracking results. It only shows tracks with at least 10 points (default: False)
-  --output-file OUTPUT_FILE
-                        output file (default: None)
 ```
+
+### Parameters
+
+TODO
+
+### Example output
+
+TODO
 
 ## Analyzer
 
-
 ```sh
-$ python3 analyzer.py -h
-
-usage: analizer.py [-h] [--min-len MIN_LEN] [--dead-std-thr DEAD_STD_THR] [--epsilon EPSILON] [--theta-range THETA_RANGE] [--particle-size PARTICLE_SIZE]
+usage: analyzer.py [-h] [--min-len MIN_LEN] [--dead-std-thr DEAD_STD_THR] [--epsilon EPSILON] [--theta-range THETA_RANGE] [--particle-size PARTICLE_SIZE]
                    [--n-bodies N_BODIES] [--k-subsample-factor K_SUBSAMPLE_FACTOR] [--mpp MPP] [--view | --save] [--output-file OUTPUT_FILE]
                    input_file
-
-Compute track information
-
-positional arguments:
-  input_file            detections file
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --min-len MIN_LEN     process only tracks with at least this number of points (value greater than 2) (default: 10)
-  --dead-std-thr DEAD_STD_THR
-                        process only tracks where the std dev of the absolute motion between consecutive points is greater than this value (in pixels) (default: 1.0)
-  --epsilon EPSILON     RDP's epsilon parameter (default: 5.0)
-  --theta-range THETA_RANGE
-                        valid angle range for a change of direction (in degrees) (default: 0.0,180.0)
-  --particle-size PARTICLE_SIZE
-                        Expected particle diameter in pixels (default: 5.0)
-  --n-bodies N_BODIES   a change in direction is considered valid if the particle has moved at least N_BODIES x PARTICLE_SIZE pixels (default: 2.0)
-  --k-subsample-factor K_SUBSAMPLE_FACTOR
-                        take one each K samples for mean curvature estimation (default: 1)
-  --mpp MPP             micrometers per pixel (for visualization only) (default: 1.0)
-  --view                view tracks (default: False)
-  --save                save tracks to './output' (default: False)
-  --output-file OUTPUT_FILE
-                        output file (default: None)
 ```
+
+### Parameters
+
+TODO
+
+### Example output
+
+TODO
