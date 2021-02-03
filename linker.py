@@ -236,9 +236,9 @@ class Linker(object):
         while track["missing"][idx] == 1:
             idx -= 1
 
-        track["t"] = track["t"][:idx]
-        track["pt"] = track["pt"][:idx]
-        track["missing"] = track["missing"][:idx]
+        track["t"] = track["t"][:idx+1]
+        track["pt"] = track["pt"][:idx+1]
+        track["missing"] = track["missing"][:idx+1]
         track["missing_count"] = 0
 
         return track
@@ -427,7 +427,7 @@ class Linker(object):
         pt_begin = np.array([tr["pt"][0] for tr in tracks])
         pt_end = np.array([tr["pt"][-1] for tr in tracks])
 
-        # # average distance between consecutive points of each track
+        # average distance between consecutive points of each track
         avg_dist = np.array([
             self.track_inter_distance(tr["pt"]) for tr in tracks
         ])
@@ -580,7 +580,7 @@ def run(args):
             f"dist-ratio-thr_{args.dist_ratio_thr}",
             "kalman" if args.kalman else "",
             f"max-kalman-guesses_{args.max_kalman_guesses}" if args.kalman else "",
-            f"n-frames_{args.n_frames}" if args.n_frames else "",
+            f"n-frames_{args.n_frames}" if args.n_frames > 0 else "",
         ]
         output_file = os.path.splitext(video_file)[0] + ".2."
         output_file += "_".join([a for a in args_ if len(a) > 0]) + ".json"
@@ -644,7 +644,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--n-frames",
         help="process first n frames only",
-        type=int
+        type=int,
+        default=-1
     )
 
     parser.add_argument(
