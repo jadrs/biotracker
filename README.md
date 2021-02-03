@@ -94,7 +94,7 @@ generates two files:
 	"input_file": "VIDEO.avi",
 	"timestamp": "Wed Feb  3 10:16:43 2021",
 	"params": {"input_file": "VIDEO.avi", "operator": "log", "prescale": 1.0, "invert": false, "sigma": 2.0, "thr": 1.0, "subpix": true, "nlmeans": false, "bgm_n_frames": 100, "bgm_method": "mean", "view": true, "output_file": null},
-	"bgm_file": "VIDEO.0.bgm-n-frames_100_bgm-method_mean.npy"
+	"bgm_file": "VIDEO.0.bgm-n-frames_100_bgm-method_mean.npy",
 	"detections": [[[224.3381, 5.3833], ... [379.8086, 29.4609]], ..., [[82.8913, 31.9120], ..., [949.6086, 31.9928]]]
 }
 ```
