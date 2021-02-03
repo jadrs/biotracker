@@ -1,6 +1,19 @@
 # BioTracker
 
-Particle detection and tracking made simple
+Particle detection and tracking.
+
+* [Installation](#installation)
+* [Detector](#detector)
+  + [Parameters](#parameters)
+  + [Example output](#example-output)
+* [Linker](#linker)
+  + [Parameters](#parameters-1)
+  + [Linking Algorithm](#linking-algorithm)
+  + [Example output](#example-output-1)
+* [Analyzer](#analyzer)
+  + [Parameters](#parameters-2)
+  + [Example output](#example-output-2)
+
 
 ## Installation
 
