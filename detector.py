@@ -48,14 +48,14 @@ def show_detections(detections):
 
 
 class Detector(object):
-    def __init__(self, operator="log", prescale=1.0, invert=False, bgn=100,
-                 bgmethod="mean", sigma=1.5, thr=0.6, subpix=False,
-                 nlmeans=False):
+    def __init__(self, operator="log", prescale=1.0, invert=False,
+                 bgm_method="mean", bgm_n_frames=100, sigma=1.5, thr=0.6,
+                 subpix=False, nlmeans=False):
         self.operator = str(operator)
         self.prescale = float(prescale)
         self.invert = bool(invert)
-        self.bgn = int(bgn)
-        self.bgmethod = str(bgmethod)
+        self.bgm_n_frames = int(bgm_n_frames)
+        self.bgm_method = str(bgm_method)
         self.sigma = float(sigma)
         self.thr = float(thr)
         self.subpix = bool(subpix)
@@ -64,7 +64,7 @@ class Detector(object):
         if not np.allclose(self.prescale, 1.0):
             self.sigma *= self.prescale
 
-        self._bgmodel = None
+        self._bgm = None
         self._dog_scale_factor = 1.2
 
         if self.operator == "log":
@@ -73,14 +73,6 @@ class Detector(object):
             self.operator_fn = self._difference_of_gaussians
         else:
             raise RuntimeError("not a valid operator")
-
-    @property
-    def bgmodel(self):
-        return self._bgmodel
-
-    @bgmodel.setter
-    def bgmodel(self, val):
-        self._bgmodel = val
 
     def _image2grayscale(self, img):
         if img.ndim == 3:
@@ -108,12 +100,6 @@ class Detector(object):
         img = cv2.resize(img, (width, height), interpolation=cv2.INTER_AREA)
 
         return img, scale_factor
-
-    def _nlmeans_blur(self, img):
-        img = cv2.fastNlMeansDenoising(
-            (255 * img).astype(np.uint8), h = 0.5 * self.sigma
-        )
-        return (img / 255.).astype(np.float32)
 
     def _laplacian_of_gaussian(self, img):
         img = self._gaussian_blur(img, self.sigma)
@@ -172,7 +158,7 @@ class Detector(object):
         return np.linalg.pinv(QtQ).dot(Qtf.reshape(-1, 1)).squeeze()
 
     def compute_background_model(self, input_file):
-        if self.bgn == 0:
+        if self.bgm_method == "none":
             return None
 
         # load video file
@@ -180,55 +166,47 @@ class Detector(object):
 
         # calculate index of images to calculate average
         total_frames = int(handler.get(cv2.CAP_PROP_FRAME_COUNT))
-        if total_frames < self.bgn:
+        if total_frames < self.bgm_n_frames:
             frame_idxs = list(range(total_frames))
         else:
-            frame_idxs = np.random.choice(total_frames, self.bgn, replace=False)
+            frame_idxs = np.random.choice(total_frames, self.bgm_n_frames, replace=False)
 
         frame_idxs = sorted(frame_idxs)
 
-        frames = []
-        for i in frame_idxs:
-            handler.set(cv2.CAP_PROP_POS_FRAMES, i)
-            ret, frame = handler.read()
-            if not ret:
-                continue
-            img = self._image2grayscale(frame)
-            frames.append(img)
+        if self.bgm_method == "mean":
+            acc = None
+            for i in frame_idxs:
+                handler.set(cv2.CAP_PROP_POS_FRAMES, i)
+                ret, frame = handler.read()
+                if not ret:
+                    continue
+                img = self._image2grayscale(frame)
+                if acc is None:
+                    acc = img
+                else:
+                    acc += img
+            self._bgm = acc / len(frame_idxs)
 
-        frames = np.stack(frames, axis=2)
+        elif self.bgm_method == "median":
+            frames = []
+            for i in frame_idxs:
+                handler.set(cv2.CAP_PROP_POS_FRAMES, i)
+                ret, frame = handler.read()
+                if not ret:
+                    continue
+                img = self._image2grayscale(frame)
+                frames.append(img)
+            self._bgm = np.median(np.stack(frames, axis=2), axis=2)
 
-        if self.bgmethod == "mean":
-            bgmodel = np.mean(frames, axis=2)
-        elif self.bgmethod == "median":
-            bgmodel = np.mean(frames, axis=2)
         else:
-            raise RuntimeError("wrong bgmethod")
+            raise RuntimeError(f"{self.bgm_method} is not a valid background modeling method")
 
-        self._bgmodel = bgmodel
-
-        return self._bgmodel
-
-    def preprocess(self, frame):
-        img = self._image2grayscale(frame)
-
-        if self._bgmodel is not None:
-            img -= self._bgmodel
-
-        if self.invert:
-            img = 1.0 - img
-
-        img, scale_factor = self._resize(img)
-
-        if self.nlmeans:
-            img = self._nlmeans_blur(img)
-
-        return img, scale_factor
+        return self._bgm
 
     def process(self, input_file, live_view=False):
-        if self.bgn > 0 and self._bgmodel is None:
+        if self._bgm is None:
             self.compute_background_model(input_file)
-            # plt.imshow(self._bgmodel, cmap="gray")
+            # plt.imshow(self._bgm, cmap="gray")
             # plt.show()
 
         handler = cv2.VideoCapture(input_file)
@@ -239,19 +217,50 @@ class Detector(object):
 
         progressbar = tqdm(ascii=True, total=total_frames)
 
+        _bgm = self._bgm if not self.invert else (1.-self._bgm)
+
         while True:
+            # read frame
             ret, frame = handler.read()
             if not ret:
                 break
 
+            # save original frame size
             frame_height, frame_width = frame.shape[:2]
 
-            img, scale_factor = self.preprocess(frame)
+            # RGB->gray
+            img = self._image2grayscale(frame)
 
+            # invert colors
+            if self.invert:
+                img = 1.0 - img
+
+            # do background substraction
+            if self._bgm is not None:
+                img -= _bgm
+
+            # if prescaled image is smaller than the original, apply it here
+            # so as to speed up nlmeans denoising
+            if self.prescale < 1.0:
+                img, scale_factor = self._resize(img)
+
+            if self.nlmeans:
+                # normalize range since background substraction results in
+                # an image in [-a,+b] and we need it in [0, 1]
+                min_, max_ = img.min(), img.max()
+                img = (img - min_) / (max_ - min_ + 2**-23)
+                img = cv2.fastNlMeansDenoising(
+                    (255 * img).astype(np.uint8), h=0.5*self.sigma
+                ).astype(np.float32)
+                img = (max_ - min_) * img + min_
+
+            # if target scale is larget
+            if self.prescale >= 1.0:
+                img, scale_factor = self._resize(img)
+
+            # run detector and search for local maxima responses
             resp = self.operator_fn(img)
-
             local_maxima = self._find_local_maxima(resp) / scale_factor
-
             detections.append(local_maxima.astype(np.float32).tolist())
 
             if live_view:
@@ -292,61 +301,48 @@ def run(args):
         operator=args.operator,
         prescale=args.prescale,
         invert=args.invert,
-        bgn=args.bgn,
+        bgm_method=args.bgm_method,
+        bgm_n_frames=args.bgm_n_frames,
         sigma=args.sigma,
         thr=args.thr,
         subpix=args.subpix,
         nlmeans=args.nlmeans
     )
 
-    # if bgmodel is needed, check first if the file already exists
-    if args.bgn > 0:
-        bgmodel_file = os.path.splitext(args.input_file)[0] + ".0."
-        bgmodel_file += "_".join([
-            f"bgn_{args.bgn}",
-            f"bgmethod_{args.bgmethod}"
+    # if bgm is needed, check first if the file already exists
+    if args.bgm_n_frames > 0:
+        bgm_file = os.path.splitext(args.input_file)[0] + ".0."
+        bgm_file += "_".join([
+            f"bgm-n-frames_{args.bgm_n_frames}",
+            f"bgm-method_{args.bgm_method}"
         ]) + ".npy"
 
-        if os.path.exists(bgmodel_file):
-            data = np.load(bgmodel_file, allow_pickle=True)
-            bgmodel = data.item()["bgmodel"]
+        if os.path.exists(bgm_file):
+            data = np.load(bgm_file, allow_pickle=True)
+            bgm = data.item()["bgm"]
         else:
-            bgmodel = detector.compute_background_model(args.input_file)
-            np.save(bgmodel_file, {
-                "bgmodel": bgmodel,
-                "bgn": args.bgn,
-                "bgmethod": args.bgmethod
+            bgm = detector.compute_background_model(args.input_file)
+            np.save(bgm_file, {
+                "bgm": bgm,
+                "bgm-n-frames": args.bgm_n_frames,
+                "bgm-method": args.bgm_method
             })
-            print(f"background model saved to \"{bgmodel_file}\"")
+            print(f"background model saved to \"{bgm_file}\"")
 
-        detector.bgmodel = bgmodel
+        detector._bgm = bgm
 
     # run detector
     detections = detector.process(args.input_file, live_view=args.view)
 
-    # read video info and setup output dict
-    try:
-        handler = cv2.VideoCapture(args.input_file)
-        frame_height = int(device.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        frame_width = int(device.get(cv2.CAP_PROP_FRAME_WIDTH))
-        fps = int(device.get(cv2.CAP_PROP_FPS))
-    except:
-        frame_height = frame_width = fps = -1  # can't read values
-
+    # prepare output
     ddict = {
         "video_file": args.input_file,
         "input_file": args.input_file,
         "timestamp": time.ctime(),
         "params": vars(args),
-        "frame_height": frame_height,
-        "frame_width": frame_width,
-        "fps": fps,
-        "bgmodel_file": None if args.bgn == 0 else bgmodel_file,
+        "bgm_file": None if args.bgm_method == "none" else bgm_file,
         "detections": detections
     }
-
-    # if args.view:
-    #     show_detections(ddict["detections"])
 
     # add parameters to output file if this arg is not present
     if args.output_file is None:
@@ -358,8 +354,8 @@ def run(args):
             f"thr_{args.thr}",
             "subpix" if args.subpix else "",
             "nlmeans" if args.nlmeans else "",
-            f"bgn_{args.bgn}",
-            f"bgmethod_{args.bgmethod}"
+            f"bgm-n-frames_{args.bgm_n_frames}",
+            f"bgm-method_{args.bgm_method}"
         ]
         output_file = os.path.splitext(args.input_file)[0] + ".1."
         output_file += "_".join([a for a in args_ if len(a) > 0]) + ".json"
@@ -377,7 +373,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="Detects particles in an input video",
+        description="Detects particles in a video",
         add_help=True,
         allow_abbrev=False
     )
@@ -411,7 +407,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--sigma",
-        help="LoG integration scale",
+        help="scale parameter for the operator",
         type=float,
         default=1.5
     )
@@ -425,7 +421,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--subpix",
-        help="compute subpixel coordinates",
+        help="refine detections at subpixel resolution",
         action="store_true",
     )
 
@@ -436,18 +432,18 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--bgn",
-        help="use n frames to compute the backround model. Set to zero disables it",
-        type=int,
-        default=100
+        "--bgm-method",
+        help="background model estimation method",
+        type=str,
+        choices=("none", "mean", "median"),
+        default="mean"
     )
 
     parser.add_argument(
-        "--bgmethod",
-        help="background model estimation method",
-        type=str,
-        choices=("mean", "median"),
-        default="mean"
+        "--bgm-n-frames",
+        help="use n frames to compute the backround model. Set to zero disables it",
+        type=int,
+        default=100
     )
 
     parser.add_argument(
