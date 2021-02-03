@@ -243,10 +243,10 @@ class Linker(object):
 
         return track
 
-    def process(self, data, n_frames=None):
+    def process(self, data, n_frames=-1):
 
         detections = data["detections"]
-        if n_frames is None:
+        if n_frames <= 0:
             n_frames = len(detections)
         else:
             n_frames = min(n_frames, len(detections))
@@ -643,7 +643,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--n-frames",
-        help="process first n frames only",
+        help="process first n frames only. Process all video frames if <= 0",
         type=int,
         default=-1
     )
