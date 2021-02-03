@@ -181,7 +181,7 @@ class CDDetector(object):
 
         pt = np.atleast_2d(points_filtered[idxs_valid+1])
         theta = theta[idxs_valid] * 180.0 / np.pi   # in degrees
-        idxs = np.argsort(cdist(points, pt), axis=1)[:, 0]
+        idxs = np.argsort(cdist(pt, points), axis=1)[:, 0]
 
         return {"pt": pt.tolist(), "theta": theta.tolist(), "idxs": idxs.tolist()}
 
