@@ -32,7 +32,7 @@ Shows a help message
 
 * **--prescale** (default: 1.0)
 
-Scaling factor applied to each video frame. If set to a value lower than 1.0 it will speed up the processing since the images will be smaller in size.
+Scaling factor applied to each video frame. If set to a value lower than 1.0 it will speed up the processing since the images will be smaller. Scale parameters (eg., --sigma) will be adapted accordingly.
 
 * **--invert**
 
@@ -44,11 +44,11 @@ If set, run [non-local means](https://en.wikipedia.org/wiki/Non-local_means) den
 
 * **--operator** {log, dog} (default: log)
 
-Blob detection operator: [Laplacian-of-Gaussian](https://en.wikipedia.org/wiki/Blob_detection#The_Laplacian_of_Gaussian) (*log*) or [Difference-of-Gaussians](https://en.wikipedia.org/wiki/Difference_of_Gaussians) (*dog*). Particle location are computed as local maxima in a 3x3 neighbour from the operator response.
+Blob detection operator: [Laplacian-of-Gaussian](https://en.wikipedia.org/wiki/Blob_detection#The_Laplacian_of_Gaussian) (*log*) or [Difference-of-Gaussians](https://en.wikipedia.org/wiki/Blob_detection#The_difference_of_Gaussians_approach) (*dog*). Particle location are computed as local maxima in a 3x3 neighbour from the operator response.
 
 * **--sigma** (default: 1.5)
 
-Scale parameter for the DoG/LoG operator. For a uniform disk of radius R pixels on a uniform background, this should be set to approximately 1.41R.
+Scale parameter for the DoG/LoG operator. For a uniform disk of radius R pixels on a uniform background, this should be set to approximately 1.41R. This scale parameter is relative to the *original* frame size and resolution (prev. to any prescaling).
 
 * **--thr** (default: 1.0)
 
