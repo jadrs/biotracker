@@ -173,7 +173,7 @@ In the figure, we are at frame *t* and observe three particles (in light red). U
 
 * the ratio of the distances between the closest and the second closest point *(t-1)* is less than DIST_RATIO_THR.
 
-Setting MAX_T_GAP to a value greater than 1 allow the tracks to remain *active* for as long as MAX_T_GAP frames. The actual linking process is based on the [Hungarian algorithm](https://en.wikipedia.org/wiki/Hungarian_algorithm) (HA) using a cost matrix that accounts for matches from *(t-1)* to *t* and from *t* to *(t-1)*  (see the ```link_points``` in ```linker.py```). The two threshold criteria described above are applied to the candidate matches returned by the HA.
+Setting MAX_T_GAP to a value greater than 1 allow the tracks to remain *active* for as long as MAX_T_GAP frames. The actual linking process is based on the [Hungarian algorithm](https://en.wikipedia.org/wiki/Hungarian_algorithm) (HA) using a cost matrix that accounts for matches from *(t-1)* to *t* and from *t* to *(t-1)*  (see the ```link_points``` method in ```linker.py```). The two threshold criteria described above are applied to the candidate matches returned by the HA.
 
 ### Example output
 
@@ -183,7 +183,7 @@ Following with the example above, running:
 $ python3 linker.py VIDEO.1.operator_log_prescale_1.0_sigma_2.0_thr_1.0_subpix_bgm-n-frames_100_bgm-method_mean.json
 ```
 
-generates a .json file (*VIDEO.2.max-t-gap_3_dist-thr_5.0_dist-ratio-thr_0.8_kalman_max-kalman-guesses_2.json*) storing the linking/tracking results. Tracks are stored as a list of dicts. Each dict has the following fields:
+generates a .json file (*VIDEO.2.max-t-gap_3_dist-thr_5.0_dist-ratio-thr_0.8.json*) storing the linking/tracking results. Tracks are stored as a list of dicts. Each dict has the following fields:
 
 * ```id```: a tracking ID
 
@@ -200,7 +200,7 @@ Example output:
 	"video_file": "VIDEO.avi",
 	"input_file": "VIDEO.1.operator_log_prescale_1.0_sigma_2.0_thr_1.0_subpix_bgm-n-frames_100_bgm-method_mean.json",
 	"timestamp": "Wed Feb  3 12:19:15 2021",
-	"params": {"input_file": "sample/DlafA.1.operator_log_prescale_1.0_sigma_1.5_thr_1.0_bgm-n-frames_100_bgm-method_mean.json", "max_t_gap": 3, "dist_thr": 5.0, "dist_ratio_thr": 0.8, "kalman": true, "max_kalman_guesses": 2, "n_frames": null, "view": true, "output_file": null}
+	"params": {"input_file": "VIDEO.1.operator_log_prescale_1.0_sigma_1.5_thr_1.0_bgm-n-frames_100_bgm-method_mean.json", "max_t_gap": 3, "dist_thr": 5.0, "dist_ratio_thr": 0.8, "kalman": true, "max_kalman_guesses": 2, "n_frames": null, "view": true, "output_file": null}
 	"tracks": [
 	    {
 		"id": 0,
@@ -211,20 +211,128 @@ Example output:
 	    ...
 	]
 }
+
 ```
 
 ## Analyzer
 
 ```sh
-usage: analyzer.py [-h] [--min-len MIN_LEN] [--dead-std-thr DEAD_STD_THR] [--epsilon EPSILON] [--theta-range THETA_RANGE] [--particle-size PARTICLE_SIZE]
-                   [--n-bodies N_BODIES] [--k-subsample-factor K_SUBSAMPLE_FACTOR] [--mpp MPP] [--view | --save] [--output-file OUTPUT_FILE]
+usage: analyzer.py [-h] [--min-len MIN_LEN] [--dead-thr DEAD_THR] [--epsilon EPSILON] [--theta-range THETA_RANGE] [--particle-size PARTICLE_SIZE] [--n-bodies N_BODIES]
+                   [--k-subsample-factor K_SUBSAMPLE_FACTOR] [--mpp MPP] [--view | --save] [--output-file OUTPUT_FILE]
                    input_file
 ```
 
 ### Parameters
 
-TODO
+* **-h, --help**
+
+Shows a help message
+
+* **--particle-size** (default: 5.0)
+
+Expected particle size (diameter) in pixels.
+
+* **--mpp** (default: 1.0)
+
+Micrometers per pixel scale conversion factor (for visualization only).
+
+* **--min-len** (default: 10)
+
+Filter out tracks with less than MIN_LEN points
+
+* **--dead-thr** (default: 2.0)
+
+Filter out tracks whose points remained within DEAD_THR x PARTICLE_SIZE pixels from the starting point.
+
+* **--view**
+
+View tracks one by one.
+
+* **--save**
+
+Save tracks to the ```output``` directory. File names are ```<TRACK ID>.png```.
+
+* **--output-file**
+
+Output file. If not set, the file name will be set to the same as the input video augmented with the parameters used in the experiment.
+
+#### Change of direction detection (CHD)
+
+* **--epsilon** (default: 5.0)
+
+[RDP's algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) epsilon parameter.
+
+* **--theta-range** (default: 0,180)
+
+A change of direction will be considered valid if the particle along the simplidied trajectory (see RDP algorithm) is within this angular range.
+
+* **--n-bodies** (default: 2.0)
+
+A change in direction is considered valid if the particle moves at least N_BODIES x PARTICLE_SIZE pixels.
+
+#### Curvature estimation
+
+* **--k-subsample-factor** (default: 1)
+
+Subsample the input track by taking each K_SUBSAMPLE_FACTOR points for estimation. Curvature estimation is based on estimating the mean curvature of the circles that pass trough three consecutive points.
 
 ### Example output
 
-TODO
+Following with the example above, running:
+
+```sh
+$ python3 analyzer.py VIDEO.2.max-t-gap_3_dist-thr_5.0_dist-ratio-thr_0.8.json
+```
+
+generates a .json file (*VIDEO.3..min-len_10_epsilon_5.0_theta-range_0.0,180.0_particle-size_5.0_n-bodies_2.0_k-subsample-factor_1.json*) storing the results. This file has essentially the same structure of the file output by linker, adding some additional information to each track. This information includes:
+
+* ```line_length```: distance between first and last points in the track.
+
+* ```path_length```: sum of point-to-point distances along the track.
+
+* ```linearity_index```: (line_length/N) / (path_length/(N-1)), with N the number of points in the track.
+
+* ```mean_angular_difference```: mean of the angle between consecutive motion vectors along the track, in degrees.
+
+* ```mean_curvature```: mean curvatures of the circles that pass trough three consecutive points along the track.
+
+* ```chd```: null or a dict with change of direction information. It has the following structure:
+
+  + ```pt```: list of CHD points
+
+  + ```theta```: list of angular difference at CHD points
+
+  + ```idxs```: indices to the points in the track where the CHD occurr
+
+  + ```mean_curvature```: list with the mean curvature of each track segment that results from the CHD points
+
+Example output:
+
+```json
+{
+	"video_file": "VIDEO.avi",
+	"input_file": "VIDEO.2.max-t-gap_3_dist-thr_5.0_dist-ratio-thr_0.8.json",
+	"timestamp": "Wed Feb  3 15:03:16 2021",
+	"params": {"input_file": "VIDEO.2.max-t-gap_3_dist-thr_5.0_dist-ratio-thr_0.8.json", "max_t_gap": 3, "dist_thr": 5.0, "dist_ratio_thr": 0.8, "kalman": true, "max_kalman_guesses": 2, "n_frames": null, "view": true, "output_file": null}
+	"tracks": [
+	    {
+		"id": 0,
+		"t": [0, 1, ...],
+		"pt": [[380.0, 29.0], [379.0, 29.0], ...],
+		"missing": [0, 0, ...],
+		"line_length": 12.5299,
+		"path_length": 52.8503,
+		"linearity_index": 0.2338,
+		"mean_angular_difference": 45.9033,
+		"mean_curvature": 0.623,
+		"chd": {
+		       "pt": [[39.0, 703.0], [50.0, 644.0]],
+		       "theta": [50.3014, 30.6668],
+		       "idxs": [50.3014, 30.6668],
+		       "mean_curvature": [0.205, 0.1512]
+		       },
+	    },
+	    ...
+	]
+}
+```
