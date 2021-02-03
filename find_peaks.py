@@ -9,7 +9,7 @@ from os.path import abspath, join, pardir, dirname, realpath
 
 import glob
 
-libfile = glob.glob('build/*/utils*.so')[0]
+libfile = glob.glob(join(abspath(dirname(__file__)), 'build/*/utils*.so'))[0]
 
 libutils = cdll.LoadLibrary(libfile)
 
