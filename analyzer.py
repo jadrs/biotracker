@@ -180,7 +180,7 @@ class CDDetector(object):
             return None
 
         pt = np.atleast_2d(points_filtered[idxs_valid+1])
-        theta = theta[idxs_valid]
+        theta = theta[idxs_valid] * 180.0 / np.pi   # in degrees
         idxs = np.argsort(cdist(points, pt), axis=1)[:, 0]
 
         return {"pt": pt.tolist(), "theta": theta.tolist(), "idxs": idxs.tolist()}
@@ -251,11 +251,10 @@ def run(args):
     #     tracks = [tr for tr in tracks if move_n_bodies(tr)]
 
     # filter out dead particles
-    tracks = [
-        tr
-        for tr in tracks if
-        np.std(distances_sequence(tr["pt"])) > args.dead_std_thr
-    ]
+    def is_dead(pts):
+        dists = ((np.atleast_2d(pts) - np.atleast_2d(pts[0]))**2).sum(1)**0.5
+        return np.all(dists < args.dead_thr * args.particle_size)
+    tracks = [tr for tr in tracks if not is_dead(tr["pt"])]
 
     cdd = CDDetector(
         theta_range=args.theta_range,
@@ -289,7 +288,7 @@ def run(args):
         tr["linearity_index"] = L0 / (L1 + 2**-23)
 
         # mean of the angular difference between track vectors
-        tr["mean_angular_difference"] = np.mean(angular_sequence(pt))
+        tr["mean_angular_difference"] = np.mean(angular_sequence(pt)) * 180. / np.pi
 
         # mean sample curvature
         tr["mean_curvature"] = mean_sample_curvature(pt, args.k_subsample_factor)
@@ -347,34 +346,6 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--min-len",
-        help="process only tracks with at least this number of points (value greater than 2)",
-        type=int,
-        default=10
-    )
-
-    parser.add_argument(
-        "--dead-std-thr",
-        help="process only tracks where the std dev of the absolute motion between consecutive points is greater than this value (in pixels)",
-        type=float,
-        default=1.0
-    )
-
-    parser.add_argument(
-        "--epsilon",
-        help="RDP's epsilon parameter",
-        type=float,
-        default=5.0
-    )
-
-    parser.add_argument(
-        "--theta-range",
-        help="valid angle range for a change of direction (in degrees)",
-        type=TupleArg,
-        default="0.0,180.0"
-    )
-
-    parser.add_argument(
         "--particle-size",
         help="Expected particle diameter in pixels",
         type=float,
@@ -382,24 +353,56 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--n-bodies",
-        help="a change in direction is considered valid if the particle has moved at least N_BODIES x PARTICLE_SIZE pixels",
-        type=float,
-        default=2.0
-    )
-
-    parser.add_argument(
-        "--k-subsample-factor",
-        help="take one each K samples for mean curvature estimation",
-        type=int,
-        default=1
-    )
-
-    parser.add_argument(
         "--mpp",
         help="micrometers per pixel (for visualization only)",
         type=float,
         default=1.0,
+    )
+
+    parser.add_argument(
+        "--min-len",
+        help="process only tracks with at least this number of points (value greater than 2)",
+        type=int,
+        default=10
+    )
+
+    parser.add_argument(
+        "--dead-thr",
+        help="filter out tracks whose points remained within DEAD_THR x PARTICLE_SIZE pixels from the starting detection.",
+        type=float,
+        default=2.0
+    )
+
+    group = parser.add_argument_group("Change of direction detection")
+
+    group.add_argument(
+        "--epsilon",
+        help="RDP's epsilon parameter",
+        type=float,
+        default=5.0
+    )
+
+    group.add_argument(
+        "--theta-range",
+        help="valid angle range for a change of direction (in degrees)",
+        type=TupleArg,
+        default="0.0,180.0"
+    )
+
+    group.add_argument(
+        "--n-bodies",
+        help="a change in direction is considered valid if the particle moves at least N_BODIES x PARTICLE_SIZE pixels",
+        type=float,
+        default=2.0
+    )
+
+    group = parser.add_argument_group("Curvature estimation")
+
+    group.add_argument(
+        "--k-subsample-factor",
+        help="take one each K samples for mean curvature estimation",
+        type=int,
+        default=1
     )
 
     group = parser.add_mutually_exclusive_group()
