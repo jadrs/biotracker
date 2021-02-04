@@ -186,9 +186,9 @@ class CDDetector(object):
         return {"pt": pt.tolist(), "theta": theta.tolist(), "idxs": idxs.tolist()}
 
 
-def view_or_save(tracks, particle_size, mpp=1.0, output_path=None):
-    pr = 0.5 * particle_size * mpp
-    b = 10 * mpp  # border
+def view_or_save(tracks, particle_size, output_path=None):
+    pr = 0.5 * particle_size
+    b = 10  # border
 
     plt.rcParams["axes.facecolor"] = "black"
 
@@ -199,7 +199,7 @@ def view_or_save(tracks, particle_size, mpp=1.0, output_path=None):
         ax = fig.add_subplot(111, aspect="equal")
 
         # draw track
-        x0, y0 = np.array(tr["pt"]).T * mpp
+        x0, y0 = np.array(tr["pt"]).T
         ax.plot(x0, y0, "r-")
 
         # draw simplified track
@@ -212,7 +212,7 @@ def view_or_save(tracks, particle_size, mpp=1.0, output_path=None):
         else:
             points = np.atleast_2d(tr["pt"])[[0, -1]]
 
-        x1, y1 = np.array(points).T * mpp
+        x1, y1 = np.array(points).T
         ax.plot(x1, y1, "g--")
 
         ax.plot(x1[1:-1], y1[1:-1], "bo", markersize=5)
@@ -222,10 +222,10 @@ def view_or_save(tracks, particle_size, mpp=1.0, output_path=None):
         plt.axis([x0.min()-b, x0.max()+b, y0.min()-b, y0.max()+b])
         plt.title(f"track id: {tr['id']}")
         ax.set_facecolor("black")
-        plt.xlabel("[pix]" if np.isclose(mpp, 1.0) else "[μm]")
+        plt.xlabel("[pix]")
         ax.grid(color="white")
         ax.invert_yaxis()
-        plt.ylabel("[pix]" if np.isclose(mpp, 1.0) else "[μm]")
+        plt.ylabel("[pix]")
 
         if output_path is not None:
             output_file = os.path.join(output_path, f"{tr['id']}.png")
@@ -236,7 +236,7 @@ def view_or_save(tracks, particle_size, mpp=1.0, output_path=None):
 
 
 def run(args):
-    # load detection data
+    # load linker data
     data = json.load(open(args.input_file, "r"))
 
     video_file = data["video_file"]
@@ -264,7 +264,6 @@ def run(args):
 
     tdict = {
         "video_file": video_file,
-        "input_file": args.input_file,
         "timestamp": time.ctime(),
         "params": vars(args),
         "tracks": tracks
@@ -315,7 +314,6 @@ def run(args):
             f"particle-size_{args.particle_size}",
             f"n-bodies_{args.n_bodies}",
             f"k-subsample-factor_{args.k_subsample_factor}",
-            #f"mpp_{args.mpp}"
         ]
         output_file = os.path.splitext(video_file)[0] + ".3."
         output_file += "_".join([a for a in args_ if len(a) > 0]) + ".json"
@@ -328,7 +326,7 @@ def run(args):
     print(f"results saved to \"{output_file}\"")
 
     if args.view or args.save:
-        view_or_save(tracks, args.particle_size, args.mpp, None if args.view else "./output")
+        view_or_save(tracks, args.particle_size, None if args.view else "./output")
 
 
 if __name__ == "__main__":
@@ -350,13 +348,6 @@ if __name__ == "__main__":
         help="Expected particle diameter in pixels",
         type=float,
         default=5.0,
-    )
-
-    parser.add_argument(
-        "--mpp",
-        help="micrometers per pixel (for visualization only)",
-        type=float,
-        default=1.0,
     )
 
     parser.add_argument(
