@@ -337,7 +337,6 @@ def run(args):
     # prepare output
     ddict = {
         "video_file": args.input_file,
-        "input_file": args.input_file,
         "timestamp": time.ctime(),
         "params": vars(args),
         "bgm_file": None if args.bgm_method == "none" else bgm_file,

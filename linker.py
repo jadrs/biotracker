@@ -558,7 +558,6 @@ def run(args):
 
     tdict = {
         "video_file": video_file,
-        "input_file": args.input_file,
         "timestamp": time.ctime(),
         "params": vars(args),
         "tracks": [
