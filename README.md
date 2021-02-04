@@ -137,7 +137,7 @@ Only try to link points that are up to MAX_T_GAP frames apart.
 
 * **--dist-thr** (default: 5.0)
 
-(Absolute) distance threshold (see algorithm description below). A scalar greater than 0. Larger values imply a more conservative linking.
+(Absolute) distance threshold (see algorithm description below). A scalar greater than 0. Larger values imply a less conservative linking.
 
 * **--dist-ratio-thr** (default: 0.8)
 
