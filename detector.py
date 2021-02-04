@@ -50,7 +50,7 @@ def show_detections(detections):
 class Detector(object):
     def __init__(self, operator="log", prescale=1.0, invert=False,
                  bgm_method="mean", bgm_n_frames=100, sigma=1.5, thr=0.6,
-                 subpix=False, nlmeans=False):
+                 subpix=True, nlmeans=False):
         self.operator = str(operator)
         self.prescale = float(prescale)
         self.invert = bool(invert)
@@ -305,7 +305,7 @@ def run(args):
         bgm_n_frames=args.bgm_n_frames,
         sigma=args.sigma,
         thr=args.thr,
-        subpix=args.subpix,
+        subpix=bool(not args.no_subpix),
         nlmeans=args.nlmeans
     )
 
@@ -351,7 +351,7 @@ def run(args):
             "invert" if args.invert else "",
             f"sigma_{args.sigma}",
             f"thr_{args.thr}",
-            "subpix" if args.subpix else "",
+            "no_subpix" if args.no_subpix else "",
             "nlmeans" if args.nlmeans else "",
             f"bgm-n-frames_{args.bgm_n_frames}",
             f"bgm-method_{args.bgm_method}"
@@ -419,8 +419,8 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--subpix",
-        help="refine detections at subpixel resolution",
+        "--no-subpix",
+        help="do not refine detections at subpixel resolution",
         action="store_true",
     )
 
