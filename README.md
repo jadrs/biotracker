@@ -1,19 +1,21 @@
-# BioTracker
+# BioTracker :microscope:
 
 Particle detection and tracking.
 
 * [Installation](#installation)
 * [Detector](#detector)
   + [Parameters](#parameters)
-  + [Example output](#example-output)
+  + [Example](#example)
 * [Linker](#linker)
   + [Parameters](#parameters-1)
   + [Linking Algorithm](#linking-algorithm)
-  + [Example output](#example-output-1)
+  + [Example](#example-1)
 * [Analyzer](#analyzer)
   + [Parameters](#parameters-2)
-  + [Example output](#example-output-2)
-
+  + [Example](#example-2)
+* [Viewer](#viewer)
+  + [Parameters](#parameters-3)
+  + [Example](#example-3)
 
 ## Installation
 
@@ -32,7 +34,7 @@ $ python3 setup.py build
 ## Detector
 
 ```sh
-usage: detector.py [-h] [--operator {dog,log}] [--prescale PRESCALE] [--invert] [--sigma SIGMA] [--thr THR] [--subpix] [--nlmeans] [--bgm-method {none,mean,median}]
+usage: detector.py [-h] [--operator {dog,log}] [--prescale PRESCALE] [--invert] [--sigma SIGMA] [--thr THR] [--no-subpix] [--nlmeans] [--bgm-method {none,mean,median}]
                    [--bgm-n-frames BGM_N_FRAMES] [--view] [--output-file OUTPUT_FILE]
                    input_file
 ```
@@ -49,7 +51,7 @@ Scaling factor applied to each video frame. If set to a value lower than 1.0 it 
 
 * **--invert**
 
-If set, invert the intensity range
+If set, invert the intensity range. The algorithm expects bright particles on a dark background. Activate this option when working with negative videos.
 
 * **--nlmeans**
 
@@ -67,13 +69,15 @@ Scale parameter for the DoG/LoG operator. For a uniform disk of radius R pixels 
 
 Detection threshold. Only local maxima whose response is above this value will be considered as true detections.
 
-* **--subpix**
+* **--no-subpix**
 
-If set, refine detections at subpixel resolution. This is done by fitting a paraboloid on the 3x3 path aroung a detection and by taking the location of its maxima as the refined particle position.
+If set, disable subpixel refinement of particle locations. This is done by fitting a paraboloid on the 3x3 path around any given detection and taking the location of the maxima as the refined position for the particle.
 
 * **--bgm-method** {none, mean, median} (default: mean)
 
-Background model (BGM) estimation method. For *mean* we use a running average but for *median* we just store BGM_N_FRAMES frames and perform a pixel-wise median calculation. If you run out of memory, try reducing the number of samples frames.
+Background model (BGM) estimation method. For *mean* we use a running average but for *median* we just store BGM_N_FRAMES frames and perform a pixel-wise median calculation. If you run out of memory, try reducing the number of sample frames.
+
+Once the background model has been computed, it is saved as a separated .npy file. Calling the detection module again for the same video file will use this saved version instead of computing it again.
 
 * **--bgm-n-frames** (default: 100)
 
@@ -87,7 +91,7 @@ If set, view detections frame-by-frame
 
 Output file. If not set, the file name will be set to the same as the input video augmented with the parameters used in the experiment.
 
-### Example output
+### Example
 
 Running:
 
@@ -133,7 +137,7 @@ Only try to link points that are up to MAX_T_GAP frames apart.
 
 * **--dist-thr** (default: 5.0)
 
-(Absolute) distance threshold (see algorithm description below). A scalar greater than 0. Larger values imply a more conservarive linking.
+(Absolute) distance threshold (see algorithm description below). A scalar greater than 0. Larger values imply a more conservative linking.
 
 * **--dist-ratio-thr** (default: 0.8)
 
@@ -167,15 +171,15 @@ Lets look at the following 1d tracking example.
 
 ![](img/linker.png?raw=true "1D particle tracking example")
 
-In the figure, we are at frame *t* and observe three particles (in light red). Up to frame *(t-2)* we have been tracking four particles successfully. At *(t-1)* we have lost one of them (in blue) and three remains. We'll name these as 1, 2 and 3. Now at $t$ we have to decide if we link (dashed lines) the new observations to the tracks that are *active* (tracks whose last position was observed at *(t-1)*). In the figure, point 2 will be linked to the second track if the following criteria are met:
+In the figure, we are at frame *t* and observe three particles (in light red). Up to frame *(t-2)* we have been tracking four particles successfully. At *(t-1)* we have lost one of them (in blue) and three remains. We'll name these as 1, 2 and 3. Now at $t$ we have to decide if we link (dashed lines) the new observations to the tracks that are *active* (tracks whose last position was observed at *(t-1)*). In the figure, point 2 will be linked to any of the points in $(t-1)$ if the following conditions are met:
 
-* the distance to the closest point int the track is lower than DIST_THR.
+* (*proximity*) the Euclidean distance to the closest point in *(t-1)* is lower than DIST_THR.
 
-* the ratio of the distances between the closest and the second closest point *(t-1)* is less than DIST_RATIO_THR.
+* (*ambiguity*) the ratio of the distances between the closest and the second closest point in *(t-1)* is less than DIST_RATIO_THR. In the figure, the 1st and 2nd closest points are pointed with green arrows.
 
-Setting MAX_T_GAP to a value greater than 1 allow the tracks to remain *active* for as long as MAX_T_GAP frames. The actual linking process is based on the [Hungarian algorithm](https://en.wikipedia.org/wiki/Hungarian_algorithm) (HA) using a cost matrix that accounts for matches from *(t-1)* to *t* and from *t* to *(t-1)*  (see the ```link_points``` method in ```linker.py```). The two threshold criteria described above are applied to the candidate matches returned by the HA.
+Setting MAX_T_GAP to a value greater than 1 allows the tracks to remain *active* for as long as MAX_T_GAP frames. The actual linking process is based on the [Hungarian algorithm](https://en.wikipedia.org/wiki/Hungarian_algorithm) (HA) using a cost matrix that accounts for matches from *(t-1)* to *t* and from *t* to *(t-1)*  (see the ```link_points``` method in ```linker.py```). The two threshold criteria described above are applied to the candidate matches returned by the HA.
 
-### Example output
+### Example
 
 Following with the example above, running:
 
@@ -217,8 +221,8 @@ Example output:
 ## Analyzer
 
 ```sh
-usage: analyzer.py [-h] [--min-len MIN_LEN] [--dead-thr DEAD_THR] [--epsilon EPSILON] [--theta-range THETA_RANGE] [--particle-size PARTICLE_SIZE] [--n-bodies N_BODIES]
-                   [--k-subsample-factor K_SUBSAMPLE_FACTOR] [--mpp MPP] [--view | --save] [--output-file OUTPUT_FILE]
+usage: analyzer.py [-h] [--particle-size PARTICLE_SIZE] [--min-len MIN_LEN] [--dead-thr DEAD_THR] [--epsilon EPSILON] [--theta-range THETA_RANGE] [--n-bodies N_BODIES]
+                   [--k-subsample-factor K_SUBSAMPLE_FACTOR] [--view | --save] [--output-file OUTPUT_FILE]
                    input_file
 ```
 
@@ -231,10 +235,6 @@ Shows a help message
 * **--particle-size** (default: 5.0)
 
 Expected particle size (diameter) in pixels.
-
-* **--mpp** (default: 1.0)
-
-Micrometers per pixel scale conversion factor (for visualization only).
 
 * **--min-len** (default: 10)
 
@@ -264,7 +264,7 @@ Output file. If not set, the file name will be set to the same as the input vide
 
 * **--theta-range** (default: 0,180)
 
-A change of direction will be considered valid if the particle along the simplidied trajectory (see RDP algorithm) is within this angular range.
+A change of direction will be considered valid if the particle along the simplified trajectory (see RDP algorithm) is within this angular range.
 
 * **--n-bodies** (default: 2.0)
 
@@ -276,7 +276,7 @@ A change in direction is considered valid if the particle moves at least N_BODIE
 
 Subsample the input track by taking each K_SUBSAMPLE_FACTOR points for estimation. Curvature estimation is based on estimating the mean curvature of the circles that pass trough three consecutive points.
 
-### Example output
+### Example
 
 Following with the example above, running:
 
@@ -284,7 +284,7 @@ Following with the example above, running:
 $ python3 analyzer.py VIDEO.2.max-t-gap_3_dist-thr_5.0_dist-ratio-thr_0.8.json
 ```
 
-generates a .json file (*VIDEO.3..min-len_10_epsilon_5.0_theta-range_0.0,180.0_particle-size_5.0_n-bodies_2.0_k-subsample-factor_1.json*) storing the results. This file has essentially the same structure of the file output by linker, adding some additional information to each track. This information includes:
+generates a .json file (*VIDEO.3.min-len_10_epsilon_5.0_theta-range_0.0,180.0_particle-size_5.0_n-bodies_2.0_k-subsample-factor_1.json*) storing the results. This file has essentially the same structure of the file output by linker, adding some additional information to each track. This information includes:
 
 * ```line_length```: distance between first and last points in the track.
 
@@ -302,7 +302,7 @@ generates a .json file (*VIDEO.3..min-len_10_epsilon_5.0_theta-range_0.0,180.0_p
 
   + ```theta```: list of angular difference at CHD points
 
-  + ```idxs```: indices to the points in the track where the CHD occurr
+  + ```idxs```: indices to the points in the track where the CHD occur
 
   + ```mean_curvature```: list with the mean curvature of each track segment that results from the CHD points
 
@@ -336,3 +336,38 @@ Example output:
 	]
 }
 ```
+
+## Viewer
+
+```sh
+usage: viewer.py [-h] [--mpp MPP] [--alpha ALPHA] [--n-tail N_TAIL] input_file
+```
+
+### Parameters
+
+* **-h, --help**
+
+Shows a help message
+
+* **--mpp** (default: 1.0)
+
+Micrometers per pixel scale conversion factor.
+
+* **--alpha** (default: 0.6)
+
+detections/tracks transparency factor
+
+* **--n-tail** (default: 10)
+
+Show the last N_TAIL points in a track
+
+### Example
+
+The following commands will visualize detection and tracks, respectively.
+
+```sh
+$ python3 viewer.py VIDEO.1.operator_log_prescale_1.0_sigma_2.0_thr_1.0_subpix_bgm-n-frames_100_bgm-method_mean.json
+$ python3 viewer.py VIDEO.2.max-t-gap_3_dist-thr_5.0_dist-ratio-thr_0.8.json
+```
+
+When run using the analyzer's output, the visualizer will show tracking results.
