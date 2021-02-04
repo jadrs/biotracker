@@ -1,4 +1,4 @@
-# BioTracker :microscope:
+# :microscope:BioTracker
 
 Particle detection and tracking.
 
@@ -173,9 +173,9 @@ Lets look at the following 1d tracking example.
 
 In the figure, we are at frame *t* and observe three particles (in light red). Up to frame *(t-2)* we have been tracking four particles successfully. At *(t-1)* we have lost one of them (in blue) and three remains. We'll name these as 1, 2 and 3. Now at $t$ we have to decide if we link (dashed lines) the new observations to the tracks that are *active* (tracks whose last position was observed at *(t-1)*). In the figure, point 2 will be linked to any of the points in $(t-1)$ if the following conditions are met:
 
-* (*proximity*) the Euclidean distance to the closest point in *(t-1)* is lower than DIST_THR.
+* (**proximity**) the Euclidean distance to the closest point in *(t-1)* is lower than DIST_THR.
 
-* (*ambiguity*) the ratio of the distances between the closest and the second closest point in *(t-1)* is less than DIST_RATIO_THR. In the figure, the 1st and 2nd closest points are pointed with green arrows.
+* (**ambiguity**) the ratio of the distances between the closest and the second closest point in *(t-1)* is less than DIST_RATIO_THR. In the figure, the 1st and 2nd closest points are pointed with green arrows.
 
 Setting MAX_T_GAP to a value greater than 1 allows the tracks to remain *active* for as long as MAX_T_GAP frames. The actual linking process is based on the [Hungarian algorithm](https://en.wikipedia.org/wiki/Hungarian_algorithm) (HA) using a cost matrix that accounts for matches from *(t-1)* to *t* and from *t* to *(t-1)*  (see the ```link_points``` method in ```linker.py```). The two threshold criteria described above are applied to the candidate matches returned by the HA.
 
