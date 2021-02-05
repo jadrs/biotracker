@@ -59,7 +59,7 @@ If set, run [non-local means](https://en.wikipedia.org/wiki/Non-local_means) den
 
 * **--operator** {log, dog} (default: log)
 
-Blob detection operator: [Laplacian-of-Gaussian](https://en.wikipedia.org/wiki/Blob_detection#The_Laplacian_of_Gaussian) (*log*) or [Difference-of-Gaussians](https://en.wikipedia.org/wiki/Blob_detection#The_difference_of_Gaussians_approach) (*dog*). Particle location are computed as local maxima in a 3x3 neighbour from the operator response.
+Blob detection operator: [Laplacian-of-Gaussian](https://en.wikipedia.org/wiki/Blob_detection#The_Laplacian_of_Gaussian) (*log*) or [Difference-of-Gaussians](https://en.wikipedia.org/wiki/Blob_detection#The_difference_of_Gaussians_approach) (*dog*). Particle locations are computed as local maxima in a 3x3 neighbour from the operator response.
 
 * **--sigma** (default: 1.5)
 
@@ -137,7 +137,9 @@ Only try to link points that are up to MAX_T_GAP frames apart.
 
 * **--dist-thr** (default: 5.0)
 
-(Absolute) distance threshold (see algorithm description below). A scalar greater than 0. Larger values imply a less conservative linking.
+(Absolute) distance threshold (see algorithm description below). A scalar greater than 0. Smaller values imply a more conservative linking.
+
+This parameter sets the maximun distance *in pixels* that a particle is expected to move from one frame to the next. Therefore, you might need to set it to a higher value in case of fast moving particles and/or videos recorded at lower frame rates.
 
 * **--dist-ratio-thr** (default: 0.8)
 
@@ -149,7 +151,7 @@ If set, use a per-track [Kalman filters](https://en.wikipedia.org/wiki/Kalman_fi
 
 * **--max-kalman-guesses** (default: 2)
 
-When Kalman filters are enabled, each track has its own filter. If a particle is being tracked, the filter internal state is updated according to past location observations. If for a given frame, there is no detections that matches the track history, we use the prediction cast by the Kalman filter as an estimate of where the particle should have been. MAX_KALMAN_GUESSES is the number of consecutive times (frames) we are allowed to do this.
+When Kalman filters are enabled, each track has its own filter. If a particle is being tracked, the filter internal state is updated according to past location observations. If for a given frame, there is no detection that matches the track history, we use the prediction cast by the Kalman filter as an estimate of where the particle should have been. MAX_KALMAN_GUESSES is the number of consecutive times (frames) we are allowed to do this.
 
 * **--n-frames** (default: -1)
 
@@ -165,7 +167,7 @@ Output file. If not set, the file name will be set to the same as the input vide
 
 ### Linking Algorithm
 
-Our tracking algorithm consists of two stages. During the first stage, we links points frame-by-frame based on a conservative (low false positive regime) distance-based criterion. The second stage takes as input a set of track fragments (or *tracklets*) and try to join them based on tracklet-to-tracklet temporal and spatial consistency (we search for paths on a graph whose nodes correspond to tracklets and its edges measuring possible connections.)
+Our tracking algorithm consists of two stages. During the first stage, we link points frame-by-frame based on a conservative (low false positive regime) distance-based criterion. The second stage takes as input a set of track fragments (or *tracklets*) and try to join them based on tracklet-to-tracklet temporal and spatial consistency (we search for paths on a graph whose nodes correspond to tracklets and its edges measuring possible connections.)
 
 Lets look at the following 1d tracking example.
 
@@ -274,7 +276,7 @@ A change in direction is considered valid if the particle moves at least N_BODIE
 
 * **--k-subsample-factor** (default: 1)
 
-Subsample the input track by taking each K_SUBSAMPLE_FACTOR points for estimation. Curvature estimation is based on estimating the mean curvature of the circles that pass trough three consecutive points.
+Subsample the input track by taking each K_SUBSAMPLE_FACTOR points for estimation. Curvature estimation is based on estimating the mean curvature of the circles that pass through three consecutive points.
 
 ### Example
 
@@ -294,7 +296,7 @@ generates a .json file (*VIDEO.3.min-len_10_epsilon_5.0_theta-range_0.0,180.0_pa
 
 * ```mean_angular_difference```: mean of the angle between consecutive motion vectors along the track, in degrees.
 
-* ```mean_curvature```: mean curvatures of the circles that pass trough three consecutive points along the track.
+* ```mean_curvature```: mean curvatures of the circles that pass through three consecutive points along the track.
 
 * ```chd```: null or a dict with change of direction information. It has the following structure:
 
@@ -351,7 +353,7 @@ Shows a help message
 
 * **--mpp** (default: 1.0)
 
-Micrometers per pixel scale conversion factor.
+Micrometers per pixel scale conversion factor (1 pix = mpp µm)
 
 * **--alpha** (default: 0.6)
 
@@ -359,7 +361,7 @@ detections/tracks transparency factor
 
 * **--n-tail** (default: 10)
 
-Show the last N_TAIL points in a track
+Show the last N_TAIL points for each track.
 
 ### Example
 
