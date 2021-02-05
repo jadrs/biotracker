@@ -104,7 +104,7 @@ def show_detections(data, particle_size, mpp, alpha):
     plt.show()
 
 
-def show_tracks(data, particle_size, mpp, alpha, n_tail):
+def show_tracks(data, particle_size, mpp, alpha, n_tail, show_track_ids):
     b = 10 * mpp
 
     # video_reader = cv2.VideoCapture(data["video_file"])
@@ -126,11 +126,14 @@ def show_tracks(data, particle_size, mpp, alpha, n_tail):
 
     for i, tr in enumerate(data["tracks"]):
         x, y = np.atleast_2d(tr["pt"]).T * mpp
+        r = mpp * particle_size / 2
         ax.plot(x, y, "-", color=colors[i])
         #ax.plot(x[-1], y[-1], "o", color="w", ms=ms)
         ax.add_artist(plt.Circle(
-            (x[-1], y[-1]), radius=mpp*particle_size/2, color="w", fill=True
+            (x[-1], y[-1]), radius=r, color="w", fill=True
         ))
+        if show_track_ids:
+            ax.text(x[-1]+r, y[-1]+r, f"{tr['id']}", fontsize=8, color="w")
 
     plt.title(f"Tracks")
     ax.set_facecolor("black")
@@ -210,7 +213,8 @@ def run(args):
         show_detections(json_data, args.particle_size, args.mpp, args.alpha)
 
     elif "tracks" in json_data:
-        show_tracks(json_data, args.particle_size, args.mpp, args.alpha, args.n_tail)
+        show_tracks(json_data, args.particle_size, args.mpp, args.alpha,
+                    args.n_tail, args.show_track_ids)
 
     else:
         raise RuntimeError("can\'t identify experiment type")
@@ -256,6 +260,12 @@ if __name__ == "__main__":
         help="show the last N_TAIL points in a track",
         type=int,
         default=10,
+    )
+
+    parser.add_argument(
+        "--show-track-ids",
+        help="if set, show track IDs in the summary plot",
+        action="store_true"
     )
 
     # parser.add_argument(
