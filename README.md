@@ -276,7 +276,9 @@ A change in direction is considered valid if the particle moves at least N_BODIE
 
 * **--k-subsample-factor** (default: 1)
 
-Subsample the input track by taking each K_SUBSAMPLE_FACTOR points for estimation. Curvature estimation is based on estimating the mean curvature of the circles that pass through three consecutive points.
+Subsample the input track by taking each K_SUBSAMPLE_FACTOR points for estimation.
+
+To estimate the mean curvature of a track, we take all sequences of three consecutive points along a track and fit a circle on them. The mean curvature for a track is the mean of the curvatures of such circles. Setting K_SUBSAMPLE_FACTOR to a value higher than 1 will consider 1 out every K_SUBSAMPLE_FACTOR points in the sequence (and thus a coarse resolution)
 
 ### Example
 
