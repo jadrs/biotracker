@@ -351,6 +351,10 @@ usage: viewer.py [-h] [--mpp MPP] [--alpha ALPHA] [--n-tail N_TAIL] input_file
 
 Shows a help message
 
+* **--particle-size** (default: 5.0)
+
+Expected particle size (diameter) in pixels.
+
 * **--mpp** (default: 1.0)
 
 Micrometers per pixel scale conversion factor (1 pix = mpp µm)
