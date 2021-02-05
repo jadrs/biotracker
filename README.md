@@ -344,7 +344,7 @@ Example output:
 ## Viewer
 
 ```sh
-usage: viewer.py [-h] [--mpp MPP] [--alpha ALPHA] [--n-tail N_TAIL] input_file
+usage: viewer.py [-h] [--particle-size PARTICLE_SIZE] [--mpp MPP] [--alpha ALPHA] [--n-tail N_TAIL] [--show-track-ids] input_file
 ```
 
 ### Parameters
@@ -368,6 +368,10 @@ detections/tracks transparency factor
 * **--n-tail** (default: 10)
 
 Show the last N_TAIL points for each track.
+
+* **--show-track-ids**
+
+if set, show track IDs in the summary plot
 
 ### Example
 
