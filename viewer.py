@@ -15,12 +15,10 @@ import matplotlib.pyplot as plt
 from matplotlib.cm import jet_r as cmap
 
 
-def show_detections(data, mpp=1.0, alpha=0.6):
+def show_detections(data, particle_size, mpp, alpha):
     b = 10 * mpp
 
     invert = data["params"]["invert"]
-
-    sigma = data["params"]["sigma"]
 
     fig = plt.figure()
 
@@ -36,7 +34,12 @@ def show_detections(data, mpp=1.0, alpha=0.6):
     ax = fig.add_subplot(122, aspect="equal")
     dets = sum(data["detections"], [])
     x, y = np.atleast_2d(dets).T * mpp
-    ax.plot(x, y, "o", color="w", ms=int(1.414*sigma))
+    #ax.plot(x, y, "o", color="w", ms=mpp*particle_size)
+    for i in range(len(x)):
+        ax.add_artist(plt.Circle(
+            (x[i], y[i]), radius=mpp*particle_size/2, color="w", fill=True
+        ))
+
     plt.axis([x.min()-b, x.max()+b, y.min()-b, y.max()+b])
     plt.title(f"Detections")
     ax.set_facecolor("black")
@@ -74,7 +77,8 @@ def show_detections(data, mpp=1.0, alpha=0.6):
         for (x, y) in pts:
             x = int(x + 0.5)
             y = int(y + 0.5)
-            cv2.circle(visu, (x, y), radius=int(1.4142*sigma), color=(0, 0, 255), thickness=2)
+            cv2.circle(visu, (x, y), radius=int(mpp*particle_size/2),
+                       color=(0, 0, 255), thickness=-1)
 
         visu = alpha * visu + (1 - alpha) * frame
         visu = np.clip(visu, 0, 255).astype(np.uint8)
@@ -100,12 +104,18 @@ def show_detections(data, mpp=1.0, alpha=0.6):
     plt.show()
 
 
-def show_tracks(data, mpp=1.0, alpha=0.6, n_tail=10):
+def show_tracks(data, particle_size, mpp, alpha, n_tail):
     b = 10 * mpp
 
     # video_reader = cv2.VideoCapture(data["video_file"])
     # video_height = video_reader.get(cv2.CAP_PROP_FRAME_HEIGHT)
     # video_width = video_reader.get(cv2.CAP_PROP_FRAME_WIDTH)
+
+    if ("particle_size" in data["params"]
+        and not np.isclose(data["params"]["particle_size"], particle_size)):
+        print(f"WARNING: you are using a different particle size "
+              "({particle_size}) than the one used in the experiment "
+              "({data['params']['particle_size']})")
 
     fig = plt.figure()
     ax = fig.add_subplot(111, aspect="equal")
@@ -117,7 +127,10 @@ def show_tracks(data, mpp=1.0, alpha=0.6, n_tail=10):
     for i, tr in enumerate(data["tracks"]):
         x, y = np.atleast_2d(tr["pt"]).T * mpp
         ax.plot(x, y, "-", color=colors[i])
-        ax.plot(x[-1], y[-1], "o", color="w", ms=2)
+        #ax.plot(x[-1], y[-1], "o", color="w", ms=ms)
+        ax.add_artist(plt.Circle(
+            (x[-1], y[-1]), radius=mpp*particle_size/2, color="w", fill=True
+        ))
 
     plt.title(f"Tracks")
     ax.set_facecolor("black")
@@ -163,9 +176,10 @@ def show_tracks(data, mpp=1.0, alpha=0.6, n_tail=10):
             pts = (np.atleast_2d(pts) + 0.5).astype(np.int32)
             # use the same colors for the same tracks
             clr = (colors[idxs[i]][:3] * 255).astype(np.uint8).tolist()
+            cv2.circle(visu, (pts[-1, 0], pts[-1, 1]),
+                       radius=int(mpp*particle_size/2),
+                       color=(255, 255, 255), thickness=-1)
             cv2.polylines(visu, [pts], 0, clr[::-1], thickness=2)
-            cv2.circle(visu, (pts[-1, 0], pts[-1, 1]), radius=2,
-                       color=(255, 255, 255), thickness=2)
 
         visu = alpha * visu + (1 - alpha) * frame
         visu = np.clip(visu, 0, 255).astype(np.uint8)
@@ -193,10 +207,10 @@ def run(args):
     json_data = json.load(open(args.input_file, "r"))
 
     if "detections" in json_data:
-        show_detections(json_data, args.mpp, args.alpha)
+        show_detections(json_data, args.particle_size, args.mpp, args.alpha)
 
     elif "tracks" in json_data:
-        show_tracks(json_data, args.mpp, args.alpha, args.n_tail)
+        show_tracks(json_data, args.particle_size, args.mpp, args.alpha, args.n_tail)
 
     else:
         raise RuntimeError("can\'t identify experiment type")
@@ -214,6 +228,13 @@ if __name__ == "__main__":
         "input_file",
         help="detections file",
         type=str
+    )
+
+    parser.add_argument(
+        "--particle-size",
+        help="Expected particle diameter in pixels",
+        type=float,
+        default=5.0,
     )
 
     parser.add_argument(
