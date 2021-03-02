@@ -342,42 +342,47 @@ class Linker(object):
     #     return 1.0 - np.exp(-0.5 * gamma * d2)
 
     def link_points(self, p1, p2):
+        if len(p1) == 0 or len(p2) == 0:
+            return []
+
         # pairwise distances between coordinates in p1 and p2
         dm = self.get_distance_matrix(p1, p2)
 
         # -------------------------------------------------------------------
         # p1 -> p2
 
-        n2 = len(p2)
-
-        # indices to the points in p1 that are the closest and second closest
-        # to each point in p2
-        idxs = np.argpartition(dm, kth=2, axis=0)[:2, :]
-        dm_top1 = dm[idxs[0], range(n2)]
-        dm_top2 = dm[idxs[1], range(n2)]
-
-        # an ambiguous match has a distance ratio close to 1
-        dr = dm_top1 / (dm_top2 + 2**-23)
-
         w1 = np.ones_like(dm)
-        w1[idxs[0], range(n2)] = dr
+
+        if len(p1) >= 2:  # needed for argpartition(..., kth=2, axis=0) to work
+            # indices to the points in p1 that are the closest and second closest
+            # to each point in p2
+            idxs = np.argpartition(dm, kth=2, axis=0)[:2, :]
+            dm_top1 = dm[idxs[0], range(len(p2))]
+            dm_top2 = dm[idxs[1], range(len(p2))]
+            # an ambiguous match has a distance ratio close to 1
+            dr = dm_top1 / (dm_top2 + 2**-23)
+            w1[idxs[0], range(len(p2))] = dr
 
         # -------------------------------------------------------------------
         # p2 -> p1
 
-        n1 = len(p1)
-
-        # indices to the points in p2 that are the closest and second closest
-        # to each point in p1
-        idxs = np.argpartition(dm, kth=2, axis=1)[:, :2].T
-        dm_top1 = dm[range(n1), idxs[0]]
-        dm_top2 = dm[range(n1), idxs[1]]
-
-        # an ambiguous match has a distance ratio close to 1
-        dr = dm_top1 / (dm_top2 + 2**-23)
-
         w2 = np.ones_like(dm)
-        w2[range(n1), idxs[0]] = dr
+
+        if len(p2) >= 2:  # needed for argpartition(..., kth=2, axis=1) to work
+            # indices to the points in p2 that are the closest and second closest
+            # to each point in p1
+            idxs = np.argpartition(dm, kth=2, axis=1)[:, :2].T
+            dm_top1 = dm[range(len(p1)), idxs[0]]
+            dm_top2 = dm[range(len(p1)), idxs[1]]
+            # an ambiguous match has a distance ratio close to 1
+            dr = dm_top1 / (dm_top2 + 2**-23)
+            w2[range(len(p1)), idxs[0]] = dr
+
+        # -------------------------------------------------------------------
+        # edge case of a single point in each frame
+
+        if len(p1) == 1 and len(p2) == 1:
+            return [(0, 0),] if dm[0, 0] < self.dist_thr else []
 
         # -------------------------------------------------------------------
 
