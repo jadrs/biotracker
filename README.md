@@ -272,15 +272,13 @@ A change of direction will be considered valid if the particle along the simplif
 
 A change in direction is considered valid if the particle moves at least N_BODIES x PARTICLE_SIZE pixels.
 
-#### Curvature estimation
+#### Circle fitting
+
+We fit a circle on the sequence of 2d point coordinates of each track using using the ["hyper fit" algorithm](https://www.sciencedirect.com/science/article/abs/pii/S0167947310004809?via%3Dihub). Besides circle parameters, we also store a measure of the fitting error (variance of the residuals).
 
 * **--k-subsample-factor** (default: 1)
 
-Subsample the input track by taking each K_SUBSAMPLE_FACTOR points for estimation.
-
-To estimate the curvature of a track we fit a circle to the point set using ["hyper fit" algorithm](https://www.sciencedirect.com/science/article/abs/pii/S0167947310004809?via%3Dihub). Track curvature is computed as the reciprocal of the circle radius.
-
-Setting K_SUBSAMPLE_FACTOR to a value higher than 1 will consider 1 out every K_SUBSAMPLE_FACTOR points in the sequence (and thus a coarse resolution)
+Subsample the input track by taking each K_SUBSAMPLE_FACTOR points for estimation. Setting K_SUBSAMPLE_FACTOR to a value higher than 1 will consider 1 out every K_SUBSAMPLE_FACTOR points in the sequence (and thus a coarse resolution).
 
 ### Example
 
@@ -300,7 +298,9 @@ generates a .json file (*VIDEO.3.min-len_10_epsilon_5.0_theta-range_0.0,180.0_pa
 
 * ```mean_angular_difference```: mean of the angle between consecutive motion vectors along the track, in degrees.
 
-* ```curvature```: a tuple (SC, VRES), with SC the sample curvature (estimated as the reciprocal of radius of the fitting circle) and VRES the variance of the fitting residuals.
+* ```circle_fit```: a tuple (X, Y, R, VRES), where (X,Y) are the coordinates of the center, R the radius and VRES the variance of the residuals.
+
+a tuple (SC, VRES), with SC the sample curvature (estimated as the reciprocal of radius of the fitting circle) and VRES the variance of the fitting residuals.
 
 * ```chd```: null or a dict with change of direction information. It has the following structure:
 
@@ -310,7 +310,7 @@ generates a .json file (*VIDEO.3.min-len_10_epsilon_5.0_theta-range_0.0,180.0_pa
 
   + ```idxs```: indices to the points in the track where the CHD occur
 
-  + ```curvature```: list of tuples (SC, VRES) with the curvature information (see above) for each track segment that results from the CHD points
+  + ```circle_fit```: list of tuples [(X,Y,R,VRES), ...] with the circle estimates for each track segment.
 
 Example output:
 
@@ -330,12 +330,12 @@ Example output:
 		"path_length": 52.8503,
 		"linearity_index": 0.2338,
 		"mean_angular_difference": 45.9033,
-		"curvature": [0.0124, 248.7486],
+		"circle_fit": [121.3755, 393.9569, 163.2838, 340.8885],
 		"chd": {
 		       "pt": [[39.0, 703.0], [50.0, 644.0]],
 		       "theta": [50.3014, 30.6668],
 		       "idxs": [120, 334],
-		       "curvature": [[0.0147, 376.2180], [0.0002, 236.2298]]
+		       "circle_fit": [[0.0147, 376.2180], [0.0002, 236.2298]]
 		       },
 	    },
 	    ...

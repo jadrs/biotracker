@@ -167,7 +167,7 @@ class CDDetector(object):
         ], axis=0)
 
         # compute inter-point distance
-        dist = np.sum(np.diff(points_filtered, axis=0)**2, axis=1)
+        dist = np.sum(np.diff(points_filtered, axis=0)**2, axis=1)**0.5
 
         # filter edges that are too short
         idxs_valid = np.where(dist > self._min_dist)[0].tolist()
@@ -181,13 +181,14 @@ class CDDetector(object):
         # track points
         idxs_valid[0] = 0
         idxs_valid.append(points_filtered.shape[0]-1)
+        points_filtered = points_filtered[idxs_valid]
 
         # 3rd stage ----------------------------------------------------
         # post filtering: run stages 1 and 2 on tumble points
 
         # run once more in case filtering has led to a different spatial
         # configuration
-        points_filtered = np.array(rdp.rdp(points, self._epsilon))
+        points_filtered = np.array(rdp.rdp(points_filtered, self._epsilon))
         if points_filtered.shape[0] <= 2:
             return None
 
@@ -242,12 +243,12 @@ def view_or_save(tracks, particle_size, output_path=None):
         circles = plt.Circle((x0[-1], y0[-1]), pr, color="white")
         ax.add_artist(circles)
 
-        xc, yc, rc = tr["fitting_circle"]
+        xc, yc, rc, _ = tr["circle_fit"]
         ax.add_artist(plt.Circle(
             (xc, yc), radius=rc, color="teal", lw=1.0, fill=False
         ))
         if tr["chd"] is not None:
-            for (xc, yc, rc) in tr["chd"]["fitting_circle"]:
+            for (xc, yc, rc, _) in tr["chd"]["circle_fit"]:
                 ax.add_artist(plt.Circle(
                     (xc, yc), radius=rc, color="teal", lw=0.5, fill=False, linestyle="--"
                 ))
@@ -325,8 +326,8 @@ def run(args):
         # sample curvature
         #tr["curvature"] = mean_sample_curvature(pt, args.k_subsample_factor)
 
-        _, _, r, err = fit_circle(pt, args.k_subsample_factor)
-        tr["curvature"] = (1/(r+2**-23), err)
+        xc, yc, rc, err = fit_circle(pt, args.k_subsample_factor)
+        tr["circle_fit"] = (xc, yc, rc, err)
 
         # changes of direction
         tr["chd"] = cdd.detect(pt)
@@ -334,14 +335,14 @@ def run(args):
         # adds mean curvature for each track segment around a CHD
         if tr["chd"] is not None:
             idxs = [0,] + tr["chd"]["idxs"] + [n-1,]
-            tr["chd"]["curvature"] = []
+            tr["chd"]["circle_fit"] = []
             for i, j in zip(idxs[:-1], idxs[1:]):
                 pt_ = np.atleast_2d(pt[i:j+1])
                 # tr["chd"]["curvature"].append(
                 #     mean_sample_curvature(pt_, args.k_subsample_factor)
                 # )
-                _, _, r, err = fit_circle(pt_, args.k_subsample_factor)
-                tr["chd"]["curvature"].append((1/(r+2**-23), err))
+                xc, yc, rc, err = fit_circle(pt_, args.k_subsample_factor)
+                tr["chd"]["circle_fit"].append((xc, yc, rc, err))
 
     # add parameters to output file if this arg is not present
     if args.output_file is None:
