@@ -135,6 +135,12 @@ def show_tracks(data, particle_size, mpp, alpha, n_tail, show_track_ids):
         if show_track_ids:
             ax.text(x[-1]+r, y[-1]+r, f"{tr['id']}", fontsize=8, color="w")
 
+        # x0, y0, r0 = tr["fitting_circle"]
+        # ax.add_artist(plt.Circle(
+        #     (x0, y0), radius=r0, color="w", lw=0.5, fill=False
+        # ))
+
+
     plt.title(f"Tracks")
     ax.set_facecolor("black")
     plt.xlabel("[pix]" if np.isclose(mpp, 1.0) else "[μm]")

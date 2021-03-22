@@ -18,6 +18,8 @@ from sklearn.preprocessing import normalize
 
 import matplotlib.pyplot as plt
 
+import circle_fit as cf
+
 
 def progressbar(x, **kwargs):
     return tqdm(x, ascii=True, **kwargs)
@@ -85,14 +87,35 @@ def mean_sample_curvature(pts, k_subsample_factor):
     ), axis=1).T
 
     valid_triangles = c-(a-b) >= 0.0
-    if valid_triangles.sum() <= 0.0:
+    if valid_triangles.sum() == 0:
         return 0.0
+
+    # the radius of the circle passing through three points is: (a*b*c)/(4*k),
+    # where a, b and c are distances between points and k is the area of the
+    # triangle formed by these points. The curvature of the circle is the
+    # inverse of this radius. The curvature of the path is computed as the
+    # average of the curvatures of the fitted circles along the path.
 
     c = c[valid_triangles]
     b = b[valid_triangles]
     a = a[valid_triangles]
     k = np.sqrt((a+(b+c))*(c-(a-b))*(c+(a-b))*(a+(b-c))) / 4.
     return np.mean(4 * k / (a * b * c + 2**-23))
+
+
+# curvature estimation by fitting a circle using the hyperfit algorithm
+def fit_circle(pts, k_subsample_factor):
+
+    # point subsample
+    if k_subsample_factor > 1:
+        pts = pts[::k_subsample_factor]
+
+    if pts.shape[0] < 3:
+        return 0.0
+
+    xc, yc, r, error = cf.hyper_fit(pts)
+
+    return (xc, yc, r, error)
 
 
 # change of direction detection based on the RDP algorithm
@@ -219,6 +242,16 @@ def view_or_save(tracks, particle_size, output_path=None):
         circles = plt.Circle((x0[-1], y0[-1]), pr, color="white")
         ax.add_artist(circles)
 
+        xc, yc, rc = tr["fitting_circle"]
+        ax.add_artist(plt.Circle(
+            (xc, yc), radius=rc, color="teal", lw=1.0, fill=False
+        ))
+        if tr["chd"] is not None:
+            for (xc, yc, rc) in tr["chd"]["fitting_circle"]:
+                ax.add_artist(plt.Circle(
+                    (xc, yc), radius=rc, color="teal", lw=0.5, fill=False, linestyle="--"
+                ))
+
         plt.axis([x0.min()-b, x0.max()+b, y0.min()-b, y0.max()+b])
         plt.title(f"track id: {tr['id']}")
         ax.set_facecolor("black")
@@ -289,8 +322,11 @@ def run(args):
         # mean of the angular difference between track vectors
         tr["mean_angular_difference"] = np.mean(angular_sequence(pt)) * 180. / np.pi
 
-        # mean sample curvature
-        tr["mean_curvature"] = mean_sample_curvature(pt, args.k_subsample_factor)
+        # sample curvature
+        #tr["curvature"] = mean_sample_curvature(pt, args.k_subsample_factor)
+
+        _, _, r, err = fit_circle(pt, args.k_subsample_factor)
+        tr["curvature"] = (1/(r+2**-23), err)
 
         # changes of direction
         tr["chd"] = cdd.detect(pt)
@@ -298,12 +334,14 @@ def run(args):
         # adds mean curvature for each track segment around a CHD
         if tr["chd"] is not None:
             idxs = [0,] + tr["chd"]["idxs"] + [n-1,]
-            tr["chd"]["mean_curvature"] = []
+            tr["chd"]["curvature"] = []
             for i, j in zip(idxs[:-1], idxs[1:]):
                 pt_ = np.atleast_2d(pt[i:j+1])
-                tr["chd"]["mean_curvature"].append(
-                    mean_sample_curvature(pt_, args.k_subsample_factor)
-                )
+                # tr["chd"]["curvature"].append(
+                #     mean_sample_curvature(pt_, args.k_subsample_factor)
+                # )
+                _, _, r, err = fit_circle(pt_, args.k_subsample_factor)
+                tr["chd"]["curvature"].append((1/(r+2**-23), err))
 
     # add parameters to output file if this arg is not present
     if args.output_file is None:

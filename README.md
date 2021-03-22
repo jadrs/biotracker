@@ -278,7 +278,9 @@ A change in direction is considered valid if the particle moves at least N_BODIE
 
 Subsample the input track by taking each K_SUBSAMPLE_FACTOR points for estimation.
 
-To estimate the mean curvature of a track, we take all sequences of three consecutive points along a track and fit a circle on them. The mean curvature for a track is the mean of the curvatures of such circles. Setting K_SUBSAMPLE_FACTOR to a value higher than 1 will consider 1 out every K_SUBSAMPLE_FACTOR points in the sequence (and thus a coarse resolution)
+To estimate the curvature of a track we fit a circle to the point set using ["hyper fit" algorithm](https://www.sciencedirect.com/science/article/abs/pii/S0167947310004809?via%3Dihub). Track curvature is computed as the reciprocal of the circle radius.
+
+Setting K_SUBSAMPLE_FACTOR to a value higher than 1 will consider 1 out every K_SUBSAMPLE_FACTOR points in the sequence (and thus a coarse resolution)
 
 ### Example
 
@@ -298,7 +300,7 @@ generates a .json file (*VIDEO.3.min-len_10_epsilon_5.0_theta-range_0.0,180.0_pa
 
 * ```mean_angular_difference```: mean of the angle between consecutive motion vectors along the track, in degrees.
 
-* ```mean_curvature```: mean curvatures of the circles that pass through three consecutive points along the track.
+* ```curvature```: a tuple (SC, VRES), with SC the sample curvature (estimated as the reciprocal of radius of the fitting circle) and VRES the variance of the fitting residuals.
 
 * ```chd```: null or a dict with change of direction information. It has the following structure:
 
@@ -308,7 +310,7 @@ generates a .json file (*VIDEO.3.min-len_10_epsilon_5.0_theta-range_0.0,180.0_pa
 
   + ```idxs```: indices to the points in the track where the CHD occur
 
-  + ```mean_curvature```: list with the mean curvature of each track segment that results from the CHD points
+  + ```curvature```: list of tuples (SC, VRES) with the curvature information (see above) for each track segment that results from the CHD points
 
 Example output:
 
@@ -328,12 +330,12 @@ Example output:
 		"path_length": 52.8503,
 		"linearity_index": 0.2338,
 		"mean_angular_difference": 45.9033,
-		"mean_curvature": 0.623,
+		"curvature": [0.0124, 248.7486],
 		"chd": {
 		       "pt": [[39.0, 703.0], [50.0, 644.0]],
 		       "theta": [50.3014, 30.6668],
 		       "idxs": [120, 334],
-		       "mean_curvature": [0.205, 0.1512]
+		       "curvature": [[0.0147, 376.2180], [0.0002, 236.2298]]
 		       },
 	    },
 	    ...

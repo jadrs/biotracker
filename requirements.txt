@@ -8,3 +8,4 @@ screeninfo==0.6.6
 pykalman==0.9.5
 scikit-learn==0.23.2
 rdp==0.8
+circle-fit==0.1.3
