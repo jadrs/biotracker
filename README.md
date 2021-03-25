@@ -298,9 +298,7 @@ generates a .json file (*VIDEO.3.min-len_10_epsilon_5.0_theta-range_0.0,180.0_pa
 
 * ```mean_angular_difference```: mean of the angle between consecutive motion vectors along the track, in degrees.
 
-* ```circle_fit```: a tuple (X, Y, R, VRES), where (X,Y) are the coordinates of the center, R the radius and VRES the variance of the residuals.
-
-a tuple (SC, VRES), with SC the sample curvature (estimated as the reciprocal of radius of the fitting circle) and VRES the variance of the fitting residuals.
+* ```circle_fit```: a tuple (X, Y, R, VRES) with the circle parameters or ```None``` in case of error. (X,Y) are the coordinates of the circle center, R its radius and VRES the variance of the residuals for the estimate.
 
 * ```chd```: null or a dict with change of direction information. It has the following structure:
 
@@ -310,7 +308,7 @@ a tuple (SC, VRES), with SC the sample curvature (estimated as the reciprocal of
 
   + ```idxs```: indices to the points in the track where the CHD occur
 
-  + ```circle_fit```: list of tuples [(X,Y,R,VRES), ...] with the circle estimates for each track segment.
+  + ```circle_fit```: list of tuples [(X,Y,R,VRES), ...] with the circle estimates (or None) for each track segment.
 
 Example output:
 

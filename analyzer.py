@@ -110,12 +110,15 @@ def fit_circle(pts, k_subsample_factor):
     if k_subsample_factor > 1:
         pts = pts[::k_subsample_factor]
 
-    if pts.shape[0] < 3:
-        return 0.0
+    if len(pts) < 3:
+        return None
 
-    xc, yc, r, error = cf.hyper_fit(pts)
+    circ = cf.hyper_fit(pts)   # xc, yc, r, err
 
-    return (xc, yc, r, error)
+    if np.any(np.isnan(circ)):
+        return None
+
+    return circ
 
 
 # change of direction detection based on the RDP algorithm
@@ -243,12 +246,15 @@ def view_or_save(tracks, particle_size, output_path=None):
         circles = plt.Circle((x0[-1], y0[-1]), pr, color="white")
         ax.add_artist(circles)
 
-        xc, yc, rc, _ = tr["circle_fit"]
-        ax.add_artist(plt.Circle(
-            (xc, yc), radius=rc, color="teal", lw=1.0, fill=False
-        ))
+        if tr["circle_fit"] is not None:
+            xc, yc, rc, _ = tr["circle_fit"]
+            ax.add_artist(plt.Circle(
+                (xc, yc), radius=rc, color="teal", lw=1.0, fill=False
+            ))
+
         if tr["chd"] is not None:
-            for (xc, yc, rc, _) in tr["chd"]["circle_fit"]:
+            circles = [c for c in tr["chd"]["circle_fit"] if c is not None]
+            for (xc, yc, rc, _) in circles:
                 ax.add_artist(plt.Circle(
                     (xc, yc), radius=rc, color="teal", lw=0.5, fill=False, linestyle="--"
                 ))
@@ -326,8 +332,8 @@ def run(args):
         # sample curvature
         #tr["curvature"] = mean_sample_curvature(pt, args.k_subsample_factor)
 
-        xc, yc, rc, err = fit_circle(pt, args.k_subsample_factor)
-        tr["circle_fit"] = (xc, yc, rc, err)
+        # LMSE circle
+        tr["circle_fit"] = fit_circle(pt, args.k_subsample_factor)
 
         # changes of direction
         tr["chd"] = cdd.detect(pt)
@@ -341,8 +347,8 @@ def run(args):
                 # tr["chd"]["curvature"].append(
                 #     mean_sample_curvature(pt_, args.k_subsample_factor)
                 # )
-                xc, yc, rc, err = fit_circle(pt_, args.k_subsample_factor)
-                tr["chd"]["circle_fit"].append((xc, yc, rc, err))
+                circle = fit_circle(pt_, args.k_subsample_factor)
+                tr["chd"]["circle_fit"].append(circle)
 
     # add parameters to output file if this arg is not present
     if args.output_file is None:
