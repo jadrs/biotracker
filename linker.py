@@ -356,7 +356,7 @@ class Linker(object):
         if len(p1) >= 2:  # needed for argpartition(..., kth=2, axis=0) to work
             # indices to the points in p1 that are the closest and second closest
             # to each point in p2
-            idxs = np.argpartition(dm, kth=2, axis=0)[:2, :]
+            idxs = np.argsort(dm, axis=0)[:2, :]
             dm_top1 = dm[idxs[0], range(len(p2))]
             dm_top2 = dm[idxs[1], range(len(p2))]
             # an ambiguous match has a distance ratio close to 1
@@ -371,7 +371,7 @@ class Linker(object):
         if len(p2) >= 2:  # needed for argpartition(..., kth=2, axis=1) to work
             # indices to the points in p2 that are the closest and second closest
             # to each point in p1
-            idxs = np.argpartition(dm, kth=2, axis=1)[:, :2].T
+            idxs = np.argsort(dm, axis=1)[:, :2].T
             dm_top1 = dm[range(len(p1)), idxs[0]]
             dm_top2 = dm[range(len(p1)), idxs[1]]
             # an ambiguous match has a distance ratio close to 1
