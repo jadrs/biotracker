@@ -344,7 +344,7 @@ Example output:
 ## Viewer
 
 ```sh
-usage: viewer.py [-h] [--particle-size PARTICLE_SIZE] [--mpp MPP] [--alpha ALPHA] [--n-tail N_TAIL] [--show-track-ids] input_file
+usage: viewer.py [-h] [--particle-size PARTICLE_SIZE] [--mpp MPP] [--alpha ALPHA] [--n-tail N_TAIL] [--show-track-ids] [--video] input_file
 ```
 
 ### Parameters
@@ -365,13 +365,17 @@ Micrometers per pixel scale conversion factor (1 pix = mpp µm)
 
 detections/tracks transparency factor
 
-* **--n-tail** (default: 10)
+* **--n-tail** (default: 50)
 
 Show the last N_TAIL points for each track.
 
 * **--show-track-ids**
 
 if set, show track IDs in the summary plot
+
+* **--video**
+
+if set, save visualization to a video file with the same name as the input.
 
 ### Example
 
