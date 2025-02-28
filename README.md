@@ -1,7 +1,7 @@
 # :microscope:BioTracker
 
 Particle detection and tracking.
-
+* [License](#license)
 * [Installation](#installation)
 * [Detector](#detector)
   + [Parameters](#parameters)
@@ -16,6 +16,11 @@ Particle detection and tracking.
 * [Viewer](#viewer)
   + [Parameters](#parameters-3)
   + [Example](#example-3)
+    
+## License
+
+Software distributed under license GPL-V3. See full text in (https://bitbucket.org/realhubot/simservers/src/master/LICENSE).
+
 
 ## Installation
 
